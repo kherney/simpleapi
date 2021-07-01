@@ -1,5 +1,6 @@
 # API in webob
 from webob import Request, Response
+from parse import parse
 
 # class API:
 #     def __call__(self, environ, start_response, *args, **kwargs):
@@ -28,10 +29,10 @@ class API:
 
     def handle_request(self, request: Request):
         response = Response()
-        handler = self.find_handler(request.path)
+        handler, kwargs = self.find_handler(request.path)
 
         if handler is not None:
-            handler(request, response)
+            handler(request, response, **kwargs)
         else:
             self.default_response(response)
 
@@ -39,7 +40,11 @@ class API:
 
     def find_handler(self, request_path):
         for path, handler in self.paths.items():
-            return handler if request_path == path else None
+            parse_path = parse(path, request_path)
+            if parse_path is not None:
+                return handler, parse_path.named
+
+        return None, None
 
     def default_response(self, response: Response):
         response.status_code = 404
