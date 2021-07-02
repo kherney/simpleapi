@@ -1,6 +1,7 @@
 # API in webob
 from webob import Request, Response
 from parse import parse
+from inspect import isclass
 
 # class API:
 #     def __call__(self, environ, start_response, *args, **kwargs):
@@ -21,6 +22,10 @@ class API:
         return response(environ, start_response)
 
     def route(self, path: str):
+        # if path not in self.paths:
+        #     raise AssertionError(" Such Router already exists")
+        assert path not in self.paths, "Such Router already exists"
+
         def wrapper_function(handler):
             self.paths[path] = handler
             print("return", handler)
@@ -32,7 +37,13 @@ class API:
         handler, kwargs = self.find_handler(request.path)
 
         if handler is not None:
-            handler(request, response, **kwargs)
+            if isclass(handler):
+                handler_function = getattr(handler(), request.method.lower(), None)
+                if handler_function is None:
+                    raise AttributeError("Method {} not implemented".format(request.method))
+                handler_function(request, response, **kwargs)
+            else:
+                handler(request, response, **kwargs)
         else:
             self.default_response(response)
 
