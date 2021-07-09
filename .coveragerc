@@ -1,0 +1,2 @@
+[run]
+omit = venv/*,app.py,contest.py,main.py,readme.md,swgi.py
