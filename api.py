@@ -23,13 +23,18 @@ class API:
 
         return response(environ, start_response)
 
+    def add_route(self, path: str, handler: object):
+        assert path not in self.paths, "Such Router already exists"
+        self.paths[path] = handler
+
     def route(self, path: str):
         # if path not in self.paths:
         #     raise AssertionError(" Such Router already exists")
-        assert path not in self.paths, "Such Router already exists"
+        # assert path not in self.paths, "Such Router already exists"
 
         def wrapper_function(handler):
-            self.paths[path] = handler
+            # self.paths[path] = handler
+            self.add_route(path, handler)
             print("return", handler)
             return handler
         return wrapper_function
