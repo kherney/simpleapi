@@ -22,5 +22,13 @@ class BaseRequest:
 
     def post(self, request: Request, response: Response):
         response.text = "Update Book by post method"
+
     def put(self, request: Request, response: Response):
         response.text = "PUt method for book method"
+
+
+def index(request: Request, response: Response, **kwargs):
+    response.body = app.template('index.html', context={'name': 'Kevin', 'country': 'Colombia'}).encode()
+
+
+app.add_route('/index', index)

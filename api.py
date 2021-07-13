@@ -1,9 +1,11 @@
 # API in webob
+import os
 from webob import Request, Response
 from parse import parse
 from inspect import isclass
 from requests import Session as RequestSession
 from wsgiadapter import WSGIAdapter
+from jinja2 import Environment, FileSystemLoader
 
 # class API:
 #     def __call__(self, environ, start_response, *args, **kwargs):
@@ -14,7 +16,8 @@ from wsgiadapter import WSGIAdapter
 
 
 class API:
-    def __init__(self):
+    def __init__(self, template_dir: str = 'template'):
+        self.env_template = Environment(loader=FileSystemLoader(os.path.abspath(template_dir)))
         self.paths = dict()
 
     def __call__(self, environ, start_response, *args, **kwargs):
@@ -63,6 +66,12 @@ class API:
                 return handler, parse_path.named
 
         return None, None
+
+    def template(self, file_name: str, context=None):
+        if context is None:
+            context = dict()
+
+        return self.env_template.get_template(file_name).render(**context)
 
     def default_response(self, response: Response):
         response.status_code = 404

@@ -64,3 +64,16 @@ def test_add_route(api: API, client: RequestSession):
     _response = client.get('http://testServer/newrequest')
     assert _response.status_code == 200
     assert _response.text == text_expected
+
+
+def test_template(api: API, client: RequestSession):
+
+    def index(request: Request, response: Response):
+        response.body = api.template('index.html', context={'name': 'kherney', 'country': 'Colombia'}).encode()
+
+    api.add_route('/index', index)
+
+    _response = client.get('http://testServer/index')
+    assert 'text/html' in _response.headers.get('Content-Type')
+    assert 'kherney' in _response.text
+    assert 'Colombia' in _response.text
