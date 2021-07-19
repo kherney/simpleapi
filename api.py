@@ -6,6 +6,7 @@ from inspect import isclass
 from requests import Session as RequestSession
 from wsgiadapter import WSGIAdapter
 from jinja2 import Environment, FileSystemLoader
+from whitenoise import WhiteNoise
 
 # class API:
 #     def __call__(self, environ, start_response, *args, **kwargs):
@@ -16,12 +17,16 @@ from jinja2 import Environment, FileSystemLoader
 
 
 class API:
-    def __init__(self, template_dir: str = 'template'):
+    def __init__(self, template_dir: str = 'template', static_dir: str = 'static'):
         self.env_template = Environment(loader=FileSystemLoader(os.path.abspath(template_dir)))
         self.paths = dict()
         self.handler_exception = None
+        self.whitenoise = WhiteNoise(self.wsgi_app, root=static_dir)
 
     def __call__(self, environ, start_response, *args, **kwargs):
+        return self.whitenoise(environ, start_response)
+
+    def wsgi_app(self, environ, start_response):
         request = Request(environ)
         response = self.handle_request(request)
 

@@ -1,5 +1,15 @@
 from api import RequestSession, API, Request, Response
+import pytest
 
+FILE_DIR = "css"
+FILE_NAME = "main.css"
+FILE_CONTENTS = "body {background-color: red}"
+
+
+def _create_asset(static_dir):
+    asset = static_dir.mkdir(FILE_DIR).join(FILE_NAME)
+    asset.write(FILE_CONTENTS)
+    return asset
 
 def test_server_connection(api: API, client: RequestSession):
     status_expected = 200
@@ -92,3 +102,14 @@ def test_handles_exception(api: API, client: RequestSession):
 
     _response = client.get('http://testServer/')
     assert _response.text == "SomeAttributeExceptions"
+
+
+def test_assert_served(tmpdir_factory):
+    static_dir = tmpdir_factory.mktemp("static")
+    _create_asset(static_dir)
+    api = API(static_dir=str(static_dir))
+    client = api.test_session()
+
+    response = client.get("http://testServer/{}/{}".format(FILE_DIR, FILE_NAME))
+    assert response.status_code == 200
+    assert response.text == FILE_CONTENTS
