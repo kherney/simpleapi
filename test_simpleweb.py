@@ -77,3 +77,18 @@ def test_template(api: API, client: RequestSession):
     assert 'text/html' in _response.headers.get('Content-Type')
     assert 'kherney' in _response.text
     assert 'Colombia' in _response.text
+
+
+def test_handles_exception(api: API, client: RequestSession):
+
+    def handler_exception(request: Request, response: Response, exc):
+        response.text = "SomeAttributeExceptions"
+
+    def root(request: Request, response: Response):
+        raise AttributeError()
+
+    api.add_route('/', root)
+    api.add_exception(handler_exception)
+
+    _response = client.get('http://testServer/')
+    assert _response.text == "SomeAttributeExceptions"

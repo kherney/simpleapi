@@ -19,6 +19,7 @@ class API:
     def __init__(self, template_dir: str = 'template'):
         self.env_template = Environment(loader=FileSystemLoader(os.path.abspath(template_dir)))
         self.paths = dict()
+        self.handler_exception = None
 
     def __call__(self, environ, start_response, *args, **kwargs):
         request = Request(environ)
@@ -46,16 +47,21 @@ class API:
         response = Response()
         handler, kwargs = self.find_handler(request.path)
 
-        if handler is not None:
-            if isclass(handler):
-                handler_function = getattr(handler(), request.method.lower(), None)
-                if handler_function is None:
-                    raise AttributeError("Method {} not implemented".format(request.method))
-                handler_function(request, response, **kwargs)
-            else:
+        try:
+            if handler is not None:
+                if isclass(handler):
+                    handler = getattr(handler(), request.method.lower(), None)
+                    if handler is None:
+                        raise AttributeError("Method {} not implemented".format(request.method))
+
                 handler(request, response, **kwargs)
-        else:
-            self.default_response(response)
+            else:
+                self.default_response(response)
+        except Exception as e:
+            if self.handler_exception is None:
+                raise e
+            else:
+                self.handler_exception(request, response, e)
 
         return response
 
@@ -66,6 +72,9 @@ class API:
                 return handler, parse_path.named
 
         return None, None
+
+    def add_exception(self, exception):
+        self.handler_exception = exception
 
     def template(self, file_name: str, context=None):
         if context is None:
