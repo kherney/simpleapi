@@ -1,5 +1,6 @@
 # API in webob
 import os
+
 from webob import Request, Response
 from parse import parse
 from inspect import isclass
@@ -7,6 +8,8 @@ from requests import Session as RequestSession
 from wsgiadapter import WSGIAdapter
 from jinja2 import Environment, FileSystemLoader
 from whitenoise import WhiteNoise
+
+from middleware import Middleware
 
 # class API:
 #     def __call__(self, environ, start_response, *args, **kwargs):
@@ -22,9 +25,15 @@ class API:
         self.paths = dict()
         self.handler_exception = None
         self.whitenoise = WhiteNoise(self.wsgi_app, root=static_dir)
+        self.middleware = Middleware(self)
 
     def __call__(self, environ, start_response, *args, **kwargs):
-        return self.whitenoise(environ, start_response)
+        path_info = environ.get("PATH_INFO")
+
+        if path_info.startswith("/static"):
+            environ.update([('PATH_INFO', path_info[len('/static'):])])
+            return self.whitenoise(environ, start_response)
+        return self.middleware(environ, start_response)
 
     def wsgi_app(self, environ, start_response):
         request = Request(environ)
@@ -86,6 +95,9 @@ class API:
             context = dict()
 
         return self.env_template.get_template(file_name).render(**context)
+
+    def add_middleware(self, middleware_cls):
+        self.middleware.add(middleware_cls)
 
     def default_response(self, response: Response):
         response.status_code = 404

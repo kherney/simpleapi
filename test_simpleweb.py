@@ -1,4 +1,5 @@
 from api import RequestSession, API, Request, Response
+from middleware import Middleware
 import pytest
 
 FILE_DIR = "css"
@@ -110,6 +111,31 @@ def test_assert_served(tmpdir_factory):
     api = API(static_dir=str(static_dir))
     client = api.test_session()
 
-    response = client.get("http://testServer/{}/{}".format(FILE_DIR, FILE_NAME))
+    response = client.get("http://testServer/static/{}/{}".format(FILE_DIR, FILE_NAME))
     assert response.status_code == 200
     assert response.text == FILE_CONTENTS
+
+
+def test_midleware_methods_are_called(api: API, client: RequestSession):
+    process_request_called = False
+    process_response_called = False
+
+    class CallOwnMiddleware(Middleware):
+
+        def process_request(self, request: Request):
+            nonlocal process_request_called
+            process_request_called = True
+
+        def process_response(self, request: Request, response: Response):
+            nonlocal process_response_called
+            process_response_called = True
+
+    @api.route('/')
+    def root(request: Request, response: Response):
+        response.text = "This is Sparta !!"
+
+    api.add_middleware(CallOwnMiddleware)
+    _response = client.get('http://testServer/')
+    assert _response.status_code == 200
+    assert process_response_called is True
+    assert process_request_called is True

@@ -1,5 +1,6 @@
 # App interface used by gunicorn
 from api import API, Request, Response
+from middleware import Middleware
 
 
 app = API()
@@ -27,8 +28,20 @@ class BaseRequest:
         response.text = "PUt method for book method"
 
 
+class CustomMiddleware(Middleware):
+
+    def process_request(self, request: Request):
+        message = "[{}] Processing request {} ".format(request.date, request.url)
+        print(message)
+
+    def process_response(self, request: Request, response: Response):
+        message = "[{}] Processing response {} ".format(request.date, request.url)
+        print(message)
+
+
 def index(request: Request, response: Response, **kwargs):
     response.body = app.template('index.html', context={'name': 'Kevin', 'country': 'Colombia'}).encode()
 
 
 app.add_route('/index', index)
+app.add_middleware(CustomMiddleware)
