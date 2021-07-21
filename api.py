@@ -41,32 +41,42 @@ class API:
 
         return response(environ, start_response)
 
-    def add_route(self, path: str, handler: object):
+    def add_route(self, path: str, handler: object, methods_allowed=None):
         assert path not in self.paths, "Such Router already exists"
-        self.paths[path] = handler
+        if methods_allowed is None:
+            methods_allowed = ['get', 'post', 'put', 'delete', 'options', ]
 
-    def route(self, path: str):
+        # self.paths[path] = handler
+        self.paths.update([(path, {'handler': handler, 'methods_allowed': methods_allowed, })])
+
+    def route(self, path: str, methods_allowed=None):
         # if path not in self.paths:
         #     raise AssertionError(" Such Router already exists")
         # assert path not in self.paths, "Such Router already exists"
 
         def wrapper_function(handler):
             # self.paths[path] = handler
-            self.add_route(path, handler)
+            self.add_route(path, handler, methods_allowed)
             print("return", handler)
             return handler
         return wrapper_function
 
     def handle_request(self, request: Request):
         response = Response()
-        handler, kwargs = self.find_handler(request.path)
+        handler_data, kwargs = self.find_handler(request.path)
 
         try:
-            if handler is not None:
+            if handler_data is not None:
+                handler = handler_data.get("handler")
+                methods_allowed = handler_data.get('methods_allowed')
+
                 if isclass(handler):
                     handler = getattr(handler(), request.method.lower(), None)
                     if handler is None:
-                        raise AttributeError("Method {} not implemented".format(request.method))
+                        raise AttributeError("Method {} not Allowed".format(request.method))
+                else:
+                    if request.method.lower() not in methods_allowed:
+                        raise AttributeError("Method {} not Allowed".format(request.method))
 
                 handler(request, response, **kwargs)
             else:
@@ -80,10 +90,10 @@ class API:
         return response
 
     def find_handler(self, request_path):
-        for path, handler in self.paths.items():
+        for path, handler_data in self.paths.items():
             parse_path = parse(path, request_path)
             if parse_path is not None:
-                return handler, parse_path.named
+                return handler_data, parse_path.named
 
         return None, None
 

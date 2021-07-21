@@ -12,6 +12,7 @@ def _create_asset(static_dir):
     asset.write(FILE_CONTENTS)
     return asset
 
+
 def test_server_connection(api: API, client: RequestSession):
     status_expected = 200
 
@@ -139,3 +140,20 @@ def test_midleware_methods_are_called(api: API, client: RequestSession):
     assert _response.status_code == 200
     assert process_response_called is True
     assert process_request_called is True
+
+def test_allowed_function_based_on_handlers(api: API, client: RequestSession):
+
+    @api.route("/image", methods_allowed=['post', ])
+    def image(request: Request, response: Response):
+        response.text = "Hello"
+
+    def image_2(request: Request, response: Response):
+        response.text = "Hello_2"
+
+    api.add_route("/image2", image_2, methods_allowed=['put', ])
+
+    with pytest.raises(AttributeError):
+        client.get("http://testServer/image")
+
+    assert client.post("http://testServer/image").text == "Hello"
+    assert client.put("http://testServer/image2").text == "Hello_2"

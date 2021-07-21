@@ -43,5 +43,10 @@ def index(request: Request, response: Response, **kwargs):
     response.body = app.template('index.html', context={'name': 'Kevin', 'country': 'Colombia'}).encode()
 
 
+def custom_exeptions(request: Request, response: Response, exception_cls):
+    response.text = str(exception_cls)
+
+
+app.add_exception(custom_exeptions)
 app.add_route('/index', index)
 app.add_middleware(CustomMiddleware)
